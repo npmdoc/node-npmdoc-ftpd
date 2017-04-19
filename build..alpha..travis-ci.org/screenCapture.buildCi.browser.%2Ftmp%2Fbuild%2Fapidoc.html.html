@@ -65,6 +65,12 @@
 
         <li>
 
+            <span class="apidocSignatureSpan">object <span class="apidocSignatureSpan"></span>ftpd</span>
+
+        </li>
+
+        <li>
+
             <span class="apidocSignatureSpan">object <span class="apidocSignatureSpan">ftpd.</span>FtpServer.prototype</span>
 
         </li>
@@ -148,6 +154,19 @@
             <a class="apidocElementLiA" href="#apidoc.element.ftpd.FtpServer.prototype.listen">
             function <span class="apidocSignatureSpan">ftpd.FtpServer.prototype.</span>listen
             <span class="apidocSignatureSpan">()</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.ftpd.ftpd">module ftpd.ftpd</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.ftpd.ftpd.FtpServer">
+            function <span class="apidocSignatureSpan">ftpd.ftpd.</span>FtpServer
+            <span class="apidocSignatureSpan">(host, options)</span>
             </a>
 
         </li>
@@ -292,6 +311,8 @@ pasvPortRangeStart: 1025,
 
 
 
+
+
 </div>
 
 <div class="apidocSectionDiv">
@@ -405,7 +426,23 @@ pasvPortRangeStart: 1025,
     }
   }
 }</pre></li>
-    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+});
+
+this.emit("client:connected", conn); // pass client info so they can listen for client-specific events
+
+socket.setTimeout(0);
+socket.setNoDelay();
+
+this.<span class="apidocCodeKeywordSpan">_logIf</span>(1, "Connection");
+conn.respond("220 FTP server (nodeftpd) ready");
+
+socket.on('data', function(buf) {
+  conn._onData(buf);
+});
+socket.on('end', function() {
+  conn._onEnd();
+...</pre></li>
     </ul>
 
 
@@ -466,7 +503,23 @@ pasvPortRangeStart: 1025,
     conn._onError(err);
   });
 }</pre></li>
-    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+self.debugging = options.logLevel || 0;
+self.useWriteFile = options.useWriteFile;
+self.useReadFile = options.useReadFile;
+self.uploadMaxSlurpSize = options.uploadMaxSlurpSize || 0;
+
+self.server = net.createServer();
+self.server.on('connection', function(socket) {
+  self.<span class="apidocCodeKeywordSpan">_onConnection</span>(socket);
+});
+self.server.on('error', function(err) {
+  self.emit('error', err);
+});
+self.server.on('close', function() {
+  self.emit('close');
+});
+...</pre></li>
     </ul>
 
 
@@ -481,7 +534,23 @@ pasvPortRangeStart: 1025,
     <li>description and source-code<pre class="apidocCodePre">_traceIf = function (level, message, conn) {
   return this._logIf(level, message, conn, true);
 }</pre></li>
-    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+    return wwenc(this.socket, message, callback);
+};
+
+FtpConnection.prototype._logIf = function(level, message, conn, isError) {
+  return this.server._logIf(level, message, this, isError);
+};
+FtpConnection.prototype._traceIf = function(level, message, conn) {
+  return this.server.<span class="apidocCodeKeywordSpan">_traceIf</span>(level, message, this);
+};
+
+FtpConnection.prototype._authenticated = function() {
+  return !!this.username;
+};
+
+FtpConnection.prototype._closeDataConnections = function() {
+...</pre></li>
     </ul>
 
 
@@ -496,7 +565,23 @@ pasvPortRangeStart: 1025,
     <li>description and source-code<pre class="apidocCodePre">close = function () {
   return this.server[fname].apply(this.server, arguments);
 }</pre></li>
-    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+return !!this.username;
+};
+
+FtpConnection.prototype._closeDataConnections = function() {
+if (this.dataSocket)
+  this.dataSocket.destroy();
+if (this.pasv)
+  this.pasv.<span class="apidocCodeKeywordSpan">close</span>();
+};
+
+FtpConnection.prototype._createPassiveServer = function() {
+var self = this;
+
+return net.createServer(function(psocket) {
+  self._logIf(1, "Passive data event: connect");
+...</pre></li>
     </ul>
 
 
@@ -521,6 +606,79 @@ pasvPortRangeStart: 1025,
 server.debugging = 4;
 server.<span class="apidocCodeKeywordSpan">listen</span>(options.port);
 console.log('Listening on port ' + options.port);
+...</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.ftpd.ftpd" id="apidoc.module.ftpd.ftpd">module ftpd.ftpd</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.ftpd.ftpd.FtpServer" id="apidoc.element.ftpd.ftpd.FtpServer">
+        function <span class="apidocSignatureSpan">ftpd.ftpd.</span>FtpServer
+        <span class="apidocSignatureSpan">(host, options)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function FtpServer(host, options) {
+  var self = this;
+  events.EventEmitter.call(self);
+
+  self.host = host;
+
+  self.options = options;
+
+  if (!self.options.maxStatsAtOnce)
+    self.options.maxStatsAtOnce = 5;
+
+  if (!options.getInitialCwd)
+    throw new Error("'getInitialCwd' option of FtpServer must be set");
+  if (!options.getRoot)
+    throw new Error("'getRoot' option of FtpServer must be set");
+  self.getInitialCwd = options.getInitialCwd;
+  self.getRoot = options.getRoot;
+
+  self.getUsernameFromUid = options.getUsernameFromUid || function(uid, c) {
+    c(null, "ftp");
+  };
+  self.getGroupFromGid = options.getGroupFromGid || function(gid, c) {
+    c(null, "ftp");
+  };
+  self.debugging = options.logLevel || 0;
+  self.useWriteFile = options.useWriteFile;
+  self.useReadFile = options.useReadFile;
+  self.uploadMaxSlurpSize = options.uploadMaxSlurpSize || 0;
+
+  self.server = net.createServer();
+  self.server.on('connection', function(socket) {
+    self._onConnection(socket);
+  });
+  self.server.on('error', function(err) {
+    self.emit('error', err);
+  });
+  self.server.on('close', function() {
+    self.emit('close');
+  });
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+console.log();
+console.log('*** To run as FTPS server,                 ***');
+console.log('***  set "KEY_FILE", "CERT_FILE"           ***');
+console.log('***  and (optionally) "CA_FILES" env vars. ***');
+console.log();
+}
+
+server = new ftpd.<span class="apidocCodeKeywordSpan">FtpServer</span>(options.host, {
+getInitialCwd: function () {
+  return '/';
+},
+getRoot: function () {
+  return process.cwd();
+},
+pasvPortRangeStart: 1025,
 ...</pre></li>
     </ul>
 
@@ -665,7 +823,23 @@ console.log('Listening on port ' + options.port);
     }
   }
 }</pre></li>
-    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+
+  // LIST may be passed options (-a in particular). We just ignore any of these.
+  // (In the particular case of -a, we show hidden files anyway.)
+  var dirname = stripOptions(commandArg);
+  var dir = withCwd(self.cwd, dirname);
+
+  glob.setMaxStatsAtOnce(self.server.options.maxStatsAtOnce);
+  glob.<span class="apidocCodeKeywordSpan">glob</span>(pathModule.join(self.root, dir), self.fs, function(err, files) {
+if (err) {
+  self._logIf(0, "While sending file list, reading directory: " + err);
+  self.respond("550 Not a directory");
+  return;
+}
+
+self._logIf(3, "Directory has " + files.length + " files");
+...</pre></li>
     </ul>
 
 
@@ -727,7 +901,22 @@ console.log('Listening on port ' + options.port);
     <li>description and source-code<pre class="apidocCodePre">function setMaxStatsAtOnce(n) {
   CONC = n;
 }</pre></li>
-    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+var self = this;
+
+// LIST may be passed options (-a in particular). We just ignore any of these.
+// (In the particular case of -a, we show hidden files anyway.)
+var dirname = stripOptions(commandArg);
+var dir = withCwd(self.cwd, dirname);
+
+glob.<span class="apidocCodeKeywordSpan">setMaxStatsAtOnce</span>(self.server.options.maxStatsAtOnce);
+glob.glob(pathModule.join(self.root, dir), self.fs, function(err, files) {
+  if (err) {
+    self._logIf(0, "While sending file list, reading directory: " + err);
+    self.respond("550 Not a directory");
+    return;
+  }
+...</pre></li>
     </ul>
 
 
@@ -762,7 +951,24 @@ console.log('Listening on port ' + options.port);
     <li>description and source-code<pre class="apidocCodePre">function starttlsServer(socket, options, callback) {
   return starttls(socket, options, callback, true);
 }</pre></li>
-    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+  var self = this;
+
+  return net.createServer(function(psocket) {
+self._logIf(1, "Passive data event: connect");
+
+if (self.secure) {
+  self._logIf(1, "Upgrading passive connection to TLS");
+  starttls.<span class="apidocCodeKeywordSpan">starttlsServer</span>(psocket, self.server.options.tlsOptions, function(err, cleartext
+) {
+    if (err) {
+      self._logIf(0, "Error upgrading passive connection to TLS:" + util.inspect(err));
+      psocket.end();
+      self.dataConfigured = false;
+    }
+    else if (!cleartext.authorized) {
+      if (self.server.options.allowUnauthorizedTls) {
+...</pre></li>
     </ul>
 
 
